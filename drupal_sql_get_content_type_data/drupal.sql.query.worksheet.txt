@@ -1,0 +1,296 @@
+// Get all fields for blog post
+SELECT field_name
+FROM field_config_instance ci
+WHERE ci.bundle = 'blog_post'
+
+// Get all fields for press releases
+SELECT field_name
+FROM field_config_instance ci
+WHERE ci.bundle = 'press_release'
+
+// Exporting press releases
+SELECT fdb.body_value, n.title, DATE_FORMAT(FROM_UNIXTIME(n.created), '%e-%b-%Y') as `date` FROM node n
+INNER JOIN node_revision nr ON n.nid = nr.nid
+INNER JOIN field_data_body fdb ON nr.vid = fdb.revision_id
+WHERE n.type='press_release' GROUP BY n.title;
+
+
+// Export blog, simple
+
+SELECT fdb.body_value, n.title FROM node n
+INNER JOIN node_revision nr ON n.nid = nr.nid
+INNER JOIN field_data_body fdb ON nr.vid = fdb.revision_id
+WHERE n.type='blog_post' GROUP BY n.title;
+
+
+// Exporting blog posts
+SELECT fdb.body_value, n.title, DATE_FORMAT(FROM_UNIXTIME(n.created), '%e-%b-%Y'), n.uid, u.name, u.mail, GROUP_CONCAT(tag.name SEPARATOR ', '), CONCAT('http://www.birst.com/sites/default/files/styles/square_thumbnail/public/', fm.filename, '?itok=GqDejPDs') as filename FROM node n
+INNER JOIN node_revision nr ON n.nid = nr.nid
+INNER JOIN field_data_body fdb ON nr.vid = fdb.revision_id
+INNER JOIN field_data_field_tags fbt ON nr.vid = fbt.revision_id
+INNER JOIN taxonomy_term_data tag ON fbt.field_tags_tid = tag.tid
+INNER JOIN users u ON n.uid = u.uid
+INNER JOIN field_data_field_alternate_image fai ON nr.vid = fai.revision_id
+INNER JOIN file_managed fm ON fm.fid = fai.field_alternate_image_fid
+WHERE n.type='blog_post' GROUP BY n.title;
+
+
+// Selecting all users for blog
+SELECT DISTINCT(n.uid), u.name, u.mail, fm.filename FROM node n
+INNER JOIN node_revision nr ON n.nid = nr.nid
+INNER JOIN field_data_body fdb ON nr.vid = fdb.revision_id
+INNER JOIN field_data_field_tags fbt ON nr.vid = fbt.revision_id
+INNER JOIN users u ON n.uid = u.uid
+WHERE n.type='case_study' ORDER BY n.created DESC
+
+
+// Get all fields for news articles
+SELECT field_name
+FROM field_config_instance ci
+WHERE ci.bundle = 'news_article'
+
+field_date
+field_sub_title
+field_url
+
+// Export news, simple
+
+SELECT n.title, fd.field_date_value, fst.field_sub_title_value, 'Read Article' as cta, furl.field_url_url FROM node n
+LEFT JOIN node_revision nr ON n.nid = nr.nid
+LEFT JOIN field_data_body fdb ON nr.vid = fdb.revision_id
+LEFT JOIN field_data_field_date fd ON nr.vid = fd.revision_id
+LEFT JOIN field_data_field_sub_title fst ON nr.vid = fst.revision_id
+LEFT JOIN field_data_field_url furl ON nr.vid = furl.revision_id
+WHERE n.type='news_article' GROUP BY n.title;
+
+// -- Case Study
+
+SELECT 
+	n.nid, 
+	n.uid, 
+	n.title,
+	n.status,
+	n.language,
+	from_unixtime(n.created) as publish_date,
+	fdb.body_value, 
+	csd.field_case_study_date_value, 
+	(SELECT alias FROM url_alias WHERE source = CONCAT('node/', n.nid)) as URL,
+	REPLACE((SELECT alias FROM url_alias WHERE source = CONCAT('node/', n.nid)), 'resources/case-studies/', '') as URI,
+	REPLACE( (SELECT uri FROM file_managed WHERE fid = csl.field_case_study_logo_fid), 'public://case-study-logos/', '') as logo,
+	csloc.field_cast_study_location_value, 
+	REPLACE((SELECT uri FROM file_managed WHERE fid = fdp.field_download_pdf_fid), 'public://resources/case-studies/', '') as pdf,
+	REPLACE((SELECT uri FROM file_managed WHERE fid = fir.field_featured_image_on_resource_fid), 'public://resources/featured-images/', '') as image,
+	(SELECT name FROM taxonomy_term_data WHERE tid = fi.field_industry_tid) as Industry,
+	fs.field_solution_value,
+	fst.field_sub_title_value,
+	CONCAT('https://www.youtube.com/watch?v=', fytid.field_youtubeid_value) as youtube
+FROM node n
+	INNER JOIN node_revision nr ON n.nid = nr.nid
+	LEFT JOIN field_data_field_case_study_date csd ON nr.vid = csd.revision_id
+	LEFT JOIN field_data_field_case_study_logo csl ON nr.vid = csl.revision_id
+	LEFT JOIN field_data_field_cast_study_location csloc ON nr.vid = csloc.revision_id
+	LEFT JOIN field_data_body fdb ON nr.vid = fdb.revision_id
+	LEFT JOIN field_data_field_download_pdf fdp ON nr.vid = fdp.revision_id
+	LEFT JOIN field_data_field_featured_image_on_resource fir ON nr.vid = fir.revision_id
+	LEFT JOIN field_data_field_government fg ON nr.vid = fg.revision_id
+	LEFT JOIN field_data_field_industry fi ON nr.vid = fi.revision_id
+	LEFT JOIN field_data_field_solution fs ON nr.vid = fs.revision_id
+	LEFT JOIN field_data_field_sub_title fst ON nr.vid = fst.revision_id
+	LEFT JOIN field_data_field_youtubeid fytid ON nr.vid = fytid.revision_id
+	LEFT JOIN users u ON n.uid = u.uid
+WHERE n.type='case_study' AND n.status = 1 AND n.language = 'en' ORDER BY n.created DESC
+
+// -- Brochure
+
+SELECT 
+	n.nid, 
+	n.uid, 
+	n.title,
+	n.status,
+	n.language,
+	from_unixtime(n.created) as publish_date,
+	fdb.body_value,
+	(SELECT alias FROM url_alias WHERE source = CONCAT('node/', n.nid)) as URL,
+	REPLACE((SELECT alias FROM url_alias WHERE source = CONCAT('node/', n.nid)), 'resources/brochure/', '') as URI,
+	REPLACE((SELECT uri FROM file_managed WHERE fid = fu.field_resource_file_upload_fid), 'public://resources/', '') as pdf,
+	(SELECT name FROM taxonomy_term_data WHERE tid = fi.field_industry_tid) as Industry,
+	fs.field_solution_value,
+	fst.field_sub_title_value
+FROM node n
+	INNER JOIN node_revision nr ON n.nid = nr.nid
+	LEFT JOIN field_data_body fdb ON nr.vid = fdb.revision_id
+	LEFT JOIN field_data_field_featured_image_on_resource fir ON nr.vid = fir.revision_id
+	LEFT JOIN field_data_field_resource_file_upload fu ON nr.vid = fu.revision_id
+	LEFT JOIN field_data_field_industry fi ON nr.vid = fi.revision_id
+	LEFT JOIN field_data_field_solution fs ON nr.vid = fs.revision_id
+	LEFT JOIN field_data_field_sub_title fst ON nr.vid = fst.revision_id
+	LEFT JOIN users u ON n.uid = u.uid
+WHERE n.type='brochure' AND n.status = 1 AND n.language = 'en' ORDER BY n.created DESC
+
+// -- Datasheet
+
+SELECT 
+	n.nid, 
+	n.uid, 
+	n.title,
+	n.status,
+	n.language,
+	from_unixtime(n.created) as publish_date,
+	fdb.body_value,
+	(SELECT alias FROM url_alias WHERE source = CONCAT('node/', n.nid)) as URL,
+	REPLACE((SELECT alias FROM url_alias WHERE source = CONCAT('node/', n.nid)), 'resources/datasheet/', '') as URI,
+	REPLACE((SELECT uri FROM file_managed WHERE fid = fu.field_resource_file_upload_fid), 'public://resources/', '') as pdf,
+	REPLACE((SELECT uri FROM file_managed WHERE fid = fir.field_featured_image_on_resource_fid), 'public://resources/featured-images/', '') as image,
+	fs.field_solution_value,
+	fst.field_sub_title_value
+FROM node n
+	INNER JOIN node_revision nr ON n.nid = nr.nid
+	LEFT JOIN field_data_body fdb ON nr.vid = fdb.revision_id
+	LEFT JOIN field_data_field_featured_image_on_resource fir ON nr.vid = fir.revision_id
+	LEFT JOIN field_data_field_resource_file_upload fu ON nr.vid = fu.revision_id
+	LEFT JOIN field_data_field_solution fs ON nr.vid = fs.revision_id
+	LEFT JOIN field_data_field_sub_title fst ON nr.vid = fst.revision_id
+	LEFT JOIN users u ON n.uid = u.uid
+WHERE n.type='datasheet' AND n.status = 1 AND n.language = 'en' ORDER BY n.created DESC
+
+// -- Webinar
+
+SELECT 
+	n.nid, 
+	n.uid, 
+	n.title,
+	n.status,
+	n.language,
+	(SELECT alias FROM url_alias WHERE source = CONCAT('node/', n.nid)) as URL,
+	REPLACE((SELECT alias FROM url_alias WHERE source = CONCAT('node/', n.nid)), 'resources/webinar/', '') as URI,
+	from_unixtime(n.created) as publish_date,
+	fdb.body_value, 
+	REPLACE((SELECT uri FROM file_managed WHERE fid = fu.field_resource_file_upload_fid), 'public://resources/', '') as pdf,
+	REPLACE((SELECT uri FROM file_managed WHERE fid = fir.field_featured_image_on_resource_fid), 'public://resources/featured-images/', '') as image,
+	fs.field_solution_value,
+	fst.field_sub_title_value
+FROM node n
+	INNER JOIN node_revision nr ON n.nid = nr.nid
+	LEFT JOIN field_data_body fdb ON nr.vid = fdb.revision_id
+	LEFT JOIN field_data_field_featured_image_on_resource fir ON nr.vid = fir.revision_id
+	LEFT JOIN field_data_field_resource_file_upload fu ON nr.vid = fu.revision_id
+	LEFT JOIN field_data_field_solution fs ON nr.vid = fs.revision_id
+	LEFT JOIN field_data_field_sub_title fst ON nr.vid = fst.revision_id
+	LEFT JOIN users u ON n.uid = u.uid
+WHERE n.type='webinar' AND n.status = 1 AND n.language = 'en' ORDER BY n.created DESC
+
+// -- Whitepaper
+
+SELECT field_name
+FROM field_config_instance ci
+WHERE ci.bundle = 'whitepaper'
+
+SELECT 
+	n.nid, 
+	n.uid, 
+	n.title,
+	n.status,
+	n.language,
+	(SELECT alias FROM url_alias WHERE source = CONCAT('node/', n.nid)) as URL,
+	REPLACE((SELECT alias FROM url_alias WHERE source = CONCAT('node/', n.nid)), 'resources/whitepaper/', '') as URI,
+	from_unixtime(n.created) as publish_date,
+	fdb.body_value, 
+	REPLACE((SELECT uri FROM file_managed WHERE fid = fu.field_resource_file_upload_fid), 'public://resources/', '') as pdf,
+	REPLACE((SELECT uri FROM file_managed WHERE fid = fir.field_featured_image_on_resource_fid), 'public://resources/featured-images/', '') as image,
+	fs.field_solution_value,
+	fst.field_sub_title_value
+FROM node n
+	INNER JOIN node_revision nr ON n.nid = nr.nid
+	LEFT JOIN field_data_body fdb ON nr.vid = fdb.revision_id
+	LEFT JOIN field_data_field_featured_image_on_resource fir ON nr.vid = fir.revision_id
+	LEFT JOIN field_data_field_resource_file_upload fu ON nr.vid = fu.revision_id
+	LEFT JOIN field_data_field_solution fs ON nr.vid = fs.revision_id
+	LEFT JOIN field_data_field_sub_title fst ON nr.vid = fst.revision_id
+	LEFT JOIN users u ON n.uid = u.uid
+WHERE n.type='whitepaper' AND n.status = 1 AND n.language = 'en' ORDER BY n.created DESC
+
+// -- Poster
+
+SELECT 
+	n.nid, 
+	n.uid, 
+	n.title,
+	n.status,
+	n.language,
+	from_unixtime(n.created) as publish_date,
+	fdb.body_value, 
+	REPLACE((SELECT uri FROM file_managed WHERE fid = fu.field_resource_file_upload_fid), 'public://resources/', '') as pdf,
+	REPLACE((SELECT uri FROM file_managed WHERE fid = fir.field_featured_image_on_resource_fid), 'public://resources/featured-images/', '') as image,
+	fs.field_solution_value,
+	fst.field_sub_title_value
+FROM node n
+	INNER JOIN node_revision nr ON n.nid = nr.nid
+	LEFT JOIN field_data_body fdb ON nr.vid = fdb.revision_id
+	LEFT JOIN field_data_field_featured_image_on_resource fir ON nr.vid = fir.revision_id
+	LEFT JOIN field_data_field_resource_file_upload fu ON nr.vid = fu.revision_id
+	LEFT JOIN field_data_field_solution fs ON nr.vid = fs.revision_id
+	LEFT JOIN field_data_field_sub_title fst ON nr.vid = fst.revision_id
+	LEFT JOIN users u ON n.uid = u.uid
+WHERE n.type='poster' AND n.status = 1 AND n.language = 'en' ORDER BY n.created DESC
+
+// -- Video
+
+SELECT 
+	n.nid, 
+	n.uid, 
+	n.title,
+	n.status,
+	n.language,
+	(SELECT alias FROM url_alias WHERE source = CONCAT('node/', n.nid)) as URL,
+	REPLACE((SELECT alias FROM url_alias WHERE source = CONCAT('node/', n.nid)), 'resources/whitepaper/', '') as URI,
+	from_unixtime(n.created) as publish_date,
+	fdb.body_value, 
+	REPLACE((SELECT uri FROM file_managed WHERE fid = fu.field_resource_file_upload_fid), 'public://resources/', '') as pdf,
+	REPLACE((SELECT uri FROM file_managed WHERE fid = fir.field_featured_image_on_resource_fid), 'public://resources/featured-images/', '') as image,
+	fs.field_solution_value,
+	fst.field_sub_title_value,
+	CONCAT('https://www.youtube.com/watch?v=', fytid.field_youtubeid_value) as youtube,
+	CONCAT('https://vimeo.com/', fvid.field_vimeoid_value) as vimeo
+FROM node n
+	INNER JOIN node_revision nr ON n.nid = nr.nid
+	LEFT JOIN field_data_body fdb ON nr.vid = fdb.revision_id
+	LEFT JOIN field_data_field_featured_image_on_resource fir ON nr.vid = fir.revision_id
+	LEFT JOIN field_data_field_resource_file_upload fu ON nr.vid = fu.revision_id
+	LEFT JOIN field_data_field_solution fs ON nr.vid = fs.revision_id
+	LEFT JOIN field_data_field_sub_title fst ON nr.vid = fst.revision_id
+	LEFT JOIN field_data_field_youtubeid fytid ON nr.vid = fytid.revision_id
+	LEFT JOIN field_data_field_vimeoid fvid ON nr.vid = fvid.revision_id
+	LEFT JOIN users u ON n.uid = u.uid
+WHERE n.type='video' AND n.status = 1 AND n.language = 'en' AND fvid.field_vimeoid_value IS NULL ORDER BY n.created DESC
+
+// -- Solution Note
+
+SELECT 
+	n.nid, 
+	n.uid, 
+	n.title,
+	n.status,
+	n.language,
+	(SELECT alias FROM url_alias WHERE source = CONCAT('node/', n.nid)) as URL,
+	REPLACE((SELECT alias FROM url_alias WHERE source = CONCAT('node/', n.nid)), 'resources/whitepaper/', '') as URI,
+	from_unixtime(n.created) as publish_date,
+	fdb.body_value, 
+	REPLACE((SELECT uri FROM file_managed WHERE fid = fu.field_resource_file_upload_fid), 'public://resources/', '') as pdf,
+	REPLACE((SELECT uri FROM file_managed WHERE fid = fir.field_featured_image_on_resource_fid), 'public://resources/featured-images/', '') as image,
+	fs.field_solution_value,
+	fst.field_sub_title_value,
+	CONCAT('https://www.youtube.com/watch?v=', fytid.field_youtubeid_value) as youtube,
+	CONCAT('https://vimeo.com/', fvid.field_vimeoid_value) as vimeo
+FROM node n
+	INNER JOIN node_revision nr ON n.nid = nr.nid
+	LEFT JOIN field_data_body fdb ON nr.vid = fdb.revision_id
+	LEFT JOIN field_data_field_featured_image_on_resource fir ON nr.vid = fir.revision_id
+	LEFT JOIN field_data_field_resource_file_upload fu ON nr.vid = fu.revision_id
+	LEFT JOIN field_data_field_solution fs ON nr.vid = fs.revision_id
+	LEFT JOIN field_data_field_sub_title fst ON nr.vid = fst.revision_id
+	LEFT JOIN field_data_field_youtubeid fytid ON nr.vid = fytid.revision_id
+	LEFT JOIN field_data_field_vimeoid fvid ON nr.vid = fvid.revision_id
+	LEFT JOIN users u ON n.uid = u.uid
+WHERE n.type='solution_note' AND n.status = 1 AND n.language = 'en' AND fvid.field_vimeoid_value IS NULL ORDER BY n.created DESC
+
+
