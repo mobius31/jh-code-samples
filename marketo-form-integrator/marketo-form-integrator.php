@@ -1,8 +1,8 @@
 <?php
 	/*
-	Plugin Name: Marketo Forms 2.0 Integrator
+	Plugin Name: Marketo Forms 2.0 Data Integrator
 	Plugin URI: http://www.fullmotionstudio.com
-	Description: Allows Marketo's Forms2.0 to be generated via Shortcode.
+	Description: Allows Marketo's Forms2.0 to be generated via Shortcode. Usaged: [m2form campaign="<campaign_id" formid="form_id" debug="true" (optional)]
 	Version: 0.1
 	Author: Jon Houston
 	Author URI: http://www.fullmotionstudio.com

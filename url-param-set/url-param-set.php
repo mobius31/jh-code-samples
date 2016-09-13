@@ -1,11 +1,11 @@
 <?php
 	/*
 	Plugin Name: URL Params To Sessions
-	Plugin URI: http://www.atre.net/
+	Plugin URI: http://www.fullmotionstudio.com
 	Description: Set defined URL parameters in sessions.
 	Version: 0.1
-	Author: AtreNet, Inc.
-	Author URI: http://www.atre.net/
+	Author: Jon Houston
+	Author URI: http://www.fullmotionstudio.com
 	License: Private
 	*/
 	
