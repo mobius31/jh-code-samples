@@ -1,0 +1,232 @@
+<?php
+
+/**
+ * @file
+ * Module file for documents_json_module.
+ */
+
+/**
+ * @defgroup documents_json Example: Page
+ * @ingroup examples
+ * @{
+ * This example demonstrates how a module can display a page at a given URL.
+ *
+ * It's important to understand how the menu system works in order to
+ * implement your own pages. See the Menu Example module for some insight.
+ *
+ * @see menu_example
+ */
+
+/**
+ * Implements hook_help().
+ *
+ * Through hook_help(), a module can make documentation available to the user
+ * for the module as a whole or for specific paths. Where the help appears
+ * depends on the $path specified.
+ *
+ * In the first example below, the help text will appear on the simple page
+ * defined in hook_menu below in the region designated for help text.
+ *
+ * In the second example, the text will be available through the module page as
+ * a link beside the module or on the admin help page (admin/help) in the list
+ * of help topics using the name of the module. To specify help in the admin
+ * section use the module name in the path as in the second case below.
+ *
+ * @see hook_help()
+ */
+/* function documents_json_help($path, $arg) {
+  switch ($path) {
+    case 'docs_feed/documents_json/simple':
+      // Help text for the simple page registered for this path.
+      return t('This is help text for the simple page.');
+
+    case 'admin/help#documents_json':
+      // Help text for the admin section, using the module name in the path.
+      return t('This is help text created in the page example\'s second case.');
+  }
+} */
+
+/**
+ * Implements hook_permission().
+ *
+ * Since the access to our new custom pages will be granted based on
+ * special permissions, we need to define what those permissions are here.
+ * This ensures that they are available to enable on the user role
+ * administration pages.
+ */
+function documents_json_permission() {
+  return array(
+    'access simple page' => array(
+      'title' => t('JSON Documents Feed'),
+      'description' => t('Allow users to access JSON Documents Feed'),
+    )
+  );
+}
+
+/**
+ * Implements hook_menu().
+ *
+ * Because hook_menu() registers URL paths for items defined by the function, it
+ * is necessary for modules that create pages. Each item can also specify a
+ * callback function for a given URL. The menu items returned here provide this
+ * information to the menu system.
+ *
+ * We will define some menus, and their paths will be interpreted as follows:
+ *
+ * If the user accesses http://example.com/?q=docs_feed/documents_json/simple,
+ * the menu system will first look for a menu item with that path. In this case
+ * it will find a match, and execute documents_json_simple().
+ *
+ * If the user accesses http://example.com/?q=docs_feed/documents_json/arguments,
+ * the menu system will find no explicit match, and will fall back to the
+ * closest match, 'docs_feed/documents_json', executing documents_json_description().
+ *
+ * If the user accesses
+ * http://example.com/?q=docs_feed/documents_json/arguments/1/2, the menu
+ * system will first look for docs_feed/documents_json/arguments/1/2. Not finding
+ * a match, it will look for docs_feed/documents_json/arguments/1/%. Again not
+ * finding a match, it will look for docs_feed/documents_json/arguments/%/2.
+ * Yet again not finding a match, it will look for
+ * docs_feed/documents_json/arguments/%/%. This time it finds a match, and so will
+ * execute documents_json_arguments(1, 2). Since the parameters are passed to
+ * the function after the match, the function can do additional checking or
+ * make use of them before executing the callback function.
+ *
+ * @see hook_menu()
+ * @see menu_example
+ */
+function documents_json_menu() {
+
+  // This is the minimum information you can provide for a menu item. This menu
+  // item will be created in the default menu, usually Navigation.
+  $items['docs_feed/documents_json'] = array(
+    'title' => 'JSON Documents Feed',
+    'page callback' => 'documents_json_list',
+    'access callback' => TRUE,
+    'expanded' => TRUE,
+  );
+	
+	$items['docs_feed/documents_json_array'] = array(
+    'title' => 'JSON Documents Feed',
+    'page callback' => 'documents_json_array',
+    'access callback' => TRUE,
+    'expanded' => TRUE,
+  );
+
+  return $items;
+}
+
+/**
+ * Constructs a descriptive page.
+ *
+ * Our menu maps this function to the path 'docs_feed/documents_json'.
+ *
+ */
+function documents_json_list() {
+
+	$data = views_get_view('documents_library');
+	$data->preview('page_6');
+	$data_array = $data->result;
+	$clean_data = array();
+
+	foreach($data_array as $d) {
+		$clean_data[$d->node_title] = $d->node_title;
+	}
+
+	echo drupal_json_encode($clean_data);
+}
+
+function documents_json_array() {
+
+	$data = views_get_view('documents_library');
+	$data->preview('page_6');
+	$data_array = $data->result;
+	$clean_data = array();
+	
+	
+		
+	$i = 0;
+	foreach($data_array as $d) {
+		//echo '<pre>';
+		//print_r(json_decode($d->views_field_view_view));
+		$js = json_decode(strip_tags($d->views_field_view_view));
+		//print_r($js);
+		//echo '</pre>';
+		foreach ($js->o as $item) {
+			//echo '<pre>';
+			//print_r($item->it);
+			//echo '</pre>';
+			$clean_data[$i][$d->node_title] = array('product' => $d->node_title, 'title' => $item->it->title.', '.$item->it->field_product_version, 'file' => $item->it->nid);
+			$i++;
+		}
+		
+	}
+	
+	//echo '<pre>';
+		//print_r($data_array);
+		//print_r($clean_data);
+	//echo '<pre>';
+	//echo 'test';
+	//die();
+	
+	echo drupal_json_encode($clean_data);
+  //return array('#markup' => t('<p>The documents_json provides two pages, "simple" and "arguments".</p><p>The <a href="@simple_link">simple page</a> just returns a renderable array for display.</p><p>The <a href="@arguments_link">arguments page</a> takes two arguments and displays them, as in @arguments_link</p>', array('@simple_link' => url('docs_feed/documents_json/simple', array('absolute' => TRUE)), '@arguments_link' => url('docs_feed/documents_json/arguments/23/56', array('absolute' => TRUE)))));
+}
+
+
+/**
+ * Constructs a simple page.
+ *
+ * The simple page callback, mapped to the path 'docs_feed/documents_json/simple'.
+ *
+ * Page callbacks return a renderable array with the content area of the page.
+ * The theme system will later render and surround the content in the
+ * appropriate blocks, navigation, and styling.
+ *
+ * If you do not want to use the theme system (for example for outputting an
+ * image or XML), you should print the content yourself and not return anything.
+ */
+function documents_json_simple() {
+  return array('#markup' => '<p>' . t('Simple page: The quick brown fox jumps over the lazy dog.') . '</p>');
+}
+
+/**
+ * A more complex page callback that takes arguments.
+ *
+ * This callback is mapped to the path 'docs_feed/documents_json/arguments/%/%'.
+ *
+ * The % arguments are passed in from the page URL. In our hook_menu
+ * implementation we instructed the menu system to extract the last two
+ * parameters of the path and pass them to this function as arguments.
+ *
+ * This function also demonstrates a more complex render array in the returned
+ * values. Instead of just rendering the HTML with a theme('item_list'), the
+ * list is left unrendered, and a #theme attached to it so that it can be
+ * rendered as late as possible, giving more parts of the system a chance to
+ * change it if necessary.
+ *
+ * Consult @link http://drupal.org/node/930760 Render Arrays documentation
+ * @endlink for details.
+ */
+function documents_json_arguments($first, $second) {
+  // Make sure you don't trust the URL to be safe! Always check for exploits.
+  if (!is_numeric($first) || !is_numeric($second)) {
+    // We will just show a standard "access denied" page in this case.
+    drupal_access_denied();
+    return;  // We actually don't get here.
+  }
+
+  $list[] = t("First number was @number.", array('@number' => $first));
+  $list[] = t("Second number was @number.", array('@number' => $second));
+  $list[] = t('The total was @number.', array('@number' => $first + $second));
+
+  $render_array['documents_json_arguments'] = array(
+    '#theme' => 'item_list',  // The theme function to apply to the #items
+    '#items' => $list,  // The list itself.
+    '#title' => t('Argument Information'),
+  );
+  return $render_array;
+}
+/**
+ * @} End of "defgroup documents_json".
+ */
